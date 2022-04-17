@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">PolarDataManagement</string>
+    <string name="main_screen_title">Polar Data Manager</string>
+
+    <string name="app_description_text">Search for available Polar Devices and Connect to see Heart Rate.</string>
+    <string name="sign_in_btn_txt">Sign In</string>
+    <string name="sign_out_btn_txt">Sign Out</string>
+
+    <string name="pair_polar_device">Scan</string>
+    <string name="scanDevicesMsg">Scanning for Devices</string>
+    <string name="DevicesFoundMsg">Devices found</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="connected_indicator">Connected</string>
+
+    <string name="heartImageDescription">heartImage</string>
+    <string name="heart_rate_text">Heart Rate</string>
+    <string name="emptyHRText">--</string>
+    <string name="no_connected_devices">No connected Devices</string>
+    <string name="nothing">" "</string>
+    <string name="expand">expand</string>
+    <string name="database_URL">https://polardatamanagement-cd11a-default-rtdb.europe-west1.firebasedatabase.app/</string>
+</resources>

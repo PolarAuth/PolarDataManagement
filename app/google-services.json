@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "43942890843",
+    "project_id": "polardatamanagement-cd11a",
+    "storage_bucket": "polardatamanagement-cd11a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:43942890843:android:f38ebb72cf19267036de7e",
+        "android_client_info": {
+          "package_name": "com.example.polardatamanagement"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "43942890843-gqqr62e1tm787qfdcs55rrtsihvip5f7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCKswCPFOtFSBkcobB0bjm3u7gFbief9NA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "43942890843-gqqr62e1tm787qfdcs55rrtsihvip5f7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
