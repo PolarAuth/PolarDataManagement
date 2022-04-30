@@ -19,4 +19,15 @@
     <string name="nothing">" "</string>
     <string name="expand">expand</string>
     <string name="database_URL">https://polardatamanagement-cd11a-default-rtdb.europe-west1.firebasedatabase.app/</string>
+
+    <string name="sampling_rate">Sampling rate</string>
+    <string name="resolution">Resolution</string>
+    <string name="range">Range</string>
+    <string name="channels">Channels</string>
+    <string name="ok">OK</string>
+    <string name="get_ecg">Get ECG</string>
+
+    <string name="hr_title">HR and RR vs. Time (for 5 min)</string>
+    <string name="hr_range_title">HR, /sec RR, ms/10</string>
+    <string name="steps">Steps</string>
 </resources>

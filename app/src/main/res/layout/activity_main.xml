@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:cardBackgroundColor="@color/teal_700"
+        app:cardBackgroundColor="@color/primaryDarkColor"
         app:cardCornerRadius="2dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -51,173 +51,297 @@
         android:id="@+id/appDescriptionTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
         android:text="@string/app_description_text"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/cardView2" />
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/cardView2"
-        app:layout_constraintVertical_bias="0.083" />
+        app:layout_constraintTop_toBottomOf="@+id/appDescriptionTextView">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/UserConstraintLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone">
-
-        <androidx.cardview.widget.CardView
-            android:id="@+id/cardView"
-            android:layout_width="0dp"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/UserConstraintLayout"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="5dp"
-            app:cardCornerRadius="4dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.269">
+            android:visibility="visible">
 
-            <LinearLayout
-                android:id="@+id/baseView"
-                android:layout_width="match_parent"
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardView"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:layout_marginStart="5dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="5dp"
+                app:cardCornerRadius="4dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
                 <LinearLayout
+                    android:id="@+id/baseView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/whatIsConnectedIndicatorTxtView"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:layout_weight="0.95"
-                        android:gravity="center_horizontal"
-                        android:text="@string/no_connected_devices"
-                        android:textSize="16sp" />
-
-                    <ImageButton
-                        android:id="@+id/arrow_btn"
-                        style="@android:style/Widget.DeviceDefault.ImageButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="40dp"
-                        android:layout_weight="0.1"
-                        android:background="@color/cream"
-                        android:contentDescription="@string/nothing"
-                        app:srcCompat="@drawable/ic_baseline_expand_more_24"
-                        tools:ignore="TouchTargetSizeCheck,ImageContrastCheck" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/hiddenView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_horizontal"
-                    android:orientation="vertical"
-                    android:visibility="gone">
+                    android:orientation="vertical">
 
                     <LinearLayout
-                        android:id="@+id/linearMain2"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="5dp"
-                        android:layout_marginTop="5dp"
-                        android:layout_marginEnd="5dp"
-                        android:gravity="center_vertical|end"
                         android:orientation="horizontal">
 
                         <TextView
-                            android:id="@+id/displayMsgTxtView"
-                            style="@android:style/Widget.Material.Light.TextView"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:layout_marginStart="5dp"
-                            android:layout_marginEnd="5dp"
-                            android:gravity="center" />
-
-                        <ProgressBar
-                            android:id="@+id/progressBarScanDevices"
-                            style="@android:style/Widget.Material.Light.ProgressBar.Small"
-                            android:layout_width="wrap_content"
+                            android:id="@+id/whatIsConnectedIndicatorTxtView"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp"
-                            android:layout_marginEnd="10dp"
-                            android:visibility="invisible" />
+                            android:layout_gravity="center"
+                            android:layout_weight="0.95"
+                            android:gravity="center_horizontal"
+                            android:text="@string/no_connected_devices"
+                            android:textSize="16sp" />
 
-                        <Button
-                            android:id="@+id/ScanDevicesBtn"
-                            style="?android:attr/buttonBarButtonStyle"
+                        <ImageButton
+                            android:id="@+id/arrow_btn"
+                            style="@android:style/Widget.DeviceDefault.ImageButton"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/pair_polar_device"
-                            android:textColor="#3F51B5" />
+                            android:layout_height="40dp"
+                            android:layout_weight="0.1"
+                            android:background="@color/white"
+                            android:contentDescription="@string/nothing"
+                            app:srcCompat="@drawable/ic_baseline_expand_more_24"
+                            tools:ignore="TouchTargetSizeCheck,ImageContrastCheck" />
 
                     </LinearLayout>
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/devicesRclView"
+                    <LinearLayout
+                        android:id="@+id/hiddenView"
                         android:layout_width="match_parent"
-                        android:layout_height="100dp"
-                        android:layout_marginStart="5dp"
-                        android:layout_marginTop="8dp"
-                        android:layout_marginEnd="5dp"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:id="@+id/linearMain2"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginTop="5dp"
+                            android:layout_marginEnd="5dp"
+                            android:gravity="center_vertical|end"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/displayMsgTxtView"
+                                style="@android:style/Widget.Material.Light.TextView"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                android:layout_marginStart="5dp"
+                                android:layout_marginEnd="5dp"
+                                android:gravity="center" />
+
+                            <ProgressBar
+                                android:id="@+id/progressBarScanDevices"
+                                style="@android:style/Widget.Material.Light.ProgressBar.Small"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:layout_marginEnd="10dp"
+                                android:visibility="invisible" />
+
+                            <Button
+                                android:id="@+id/ScanDevicesBtn"
+                                style="?android:attr/buttonBarButtonStyle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/pair_polar_device"
+                                android:textColor="@color/red_700" />
+
+                        </LinearLayout>
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/devicesRclView"
+                            android:layout_width="match_parent"
+                            android:layout_height="100dp"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginEnd="5dp"
+                            android:layout_marginBottom="8dp" />
+                    </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
 
-        </androidx.cardview.widget.CardView>
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="5dp"
-            app:cardBackgroundColor="@color/cream"
-            app:cardCornerRadius="4dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.12"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/cardView"
-            app:layout_constraintVertical_bias="0.25">
+            </androidx.cardview.widget.CardView>
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:id="@+id/layoutContainingCardViews"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:gravity="center"
-                android:orientation="vertical">
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.12"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/cardView">
 
-                <ImageView
-                    android:id="@+id/imageView"
-                    android:layout_width="86dp"
-                    android:layout_height="91dp"
-                    android:contentDescription="@string/heartImageDescription"
-                    app:srcCompat="@drawable/heart" />
-
-                <TextView
-                    android:id="@+id/heartRateTxt"
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/cardView3"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/heart_rate_text"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
+                    android:layout_marginEnd="15dp"
+                    android:padding="5dp"
+                    app:cardBackgroundColor="@color/cream"
+                    app:cardCornerRadius="8dp">
 
-                <TextView
-                    android:id="@+id/displayHeartRateTxt"
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:id="@+id/imageViewHeartRate"
+                            android:layout_width="86dp"
+                            android:layout_height="91dp"
+                            android:layout_margin="5dp"
+                            android:contentDescription="@string/heartImageDescription"
+                            app:srcCompat="@drawable/heart" />
+
+                        <TextView
+                            android:id="@+id/heartRateTxt"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/heart_rate_text"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
+
+                        <TextView
+                            android:id="@+id/displayHeartRateTxt"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/emptyHRText"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                            android:textSize="18sp" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/cardViewSteps"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/emptyHRText"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textSize="18sp" />
+                    android:layout_marginStart="15dp"
+                    android:padding="5dp"
+                    app:cardBackgroundColor="@color/cream"
+                    app:cardCornerRadius="8dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:id="@+id/imageViewSteps"
+                            android:layout_width="86dp"
+                            android:layout_height="91dp"
+                            android:layout_margin="5dp"
+                            android:contentDescription="@string/heartImageDescription"
+                            app:srcCompat="@drawable/steps_image_view"
+                            tools:ignore="ImageContrastCheck" />
+
+                        <TextView
+                            android:id="@+id/stepsTxt"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/steps"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
+
+                        <TextView
+                            android:id="@+id/displayStepsTxt"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/emptyHRText"
+                            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
+
+                    </LinearLayout>
+
+                </androidx.cardview.widget.CardView>
+
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <LinearLayout
+                android:id="@+id/hr_view_hr_and_rr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/layoutContainingCardViews">
+
+                <TextView
+                    android:id="@+id/hr_view_rr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:textAlignment="center"
+                    android:textColor="@color/red_500"
+                    android:textSize="16sp"
+                    tools:ignore="TextContrastCheck"
+                    tools:text="(1002ms, 1009ms)" />
+            </LinearLayout>
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardView4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
+                app:cardBackgroundColor="@color/secondaryDarkColor"
+                app:cardCornerRadius="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/hr_view_hr_and_rr"
+                app:layout_constraintVertical_bias="0.31">
+
+                <com.androidplot.xy.XYPlot
+                    android:id="@+id/hr_view_plot"
+                    style="@style/FullScreenGraph"
+                    android:layout_width="match_parent"
+                    android:layout_height="170dp"
+                    android:layout_margin="5dp"
+                    android:layout_marginBottom="8dp"
+                    app:backgroundColor="@color/primaryColor"
+                    app:graphBackgroundColor="@color/secondaryDarkColor"
+                    app:graphMarginBottom="12dp"
+                    app:graphMarginLeft="30dp"
+                    app:graphMarginRight="5dp"
+                    app:graphMarginTop="20dp"
+                    app:gridBackgroundColor="@color/primaryColor"
+                    app:gridInsetLeft="25dp"
+                    app:lineLabels="left"
+                    app:rangeTitle="@string/hr_range_title"
+                    app:rangeTitleTextColor="@color/black"
+                    app:rangeTitleTextSize="12dp"
+                    app:renderMode="use_background_thread"
+                    app:title="@string/hr_title"
+                    app:titleTextColor="@color/black"
+                    app:titleTextSize="15dp" />
+
+            </androidx.cardview.widget.CardView>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
 
     <Button
         android:id="@+id/signInBtn"
@@ -226,6 +350,7 @@
         android:layout_height="wrap_content"
         android:text="@string/sign_in_btn_txt"
         android:textColor="#000000"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

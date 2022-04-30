@@ -1,22 +1,30 @@
 package com.example.polardatamanagement;
 
 import static android.content.ContentValues.TAG;
-
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.transition.AutoTransition;
+import androidx.transition.Fade;
+import androidx.transition.Transition;
 import androidx.transition.TransitionManager;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -28,16 +36,19 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.androidplot.xy.BoundaryMode;
+import com.androidplot.xy.StepMode;
+import com.androidplot.xy.XYGraphWidget;
+import com.androidplot.xy.XYPlot;
+import com.example.polardatamanagement.Utilities.HrAndRrPlotter;
+import com.example.polardatamanagement.Utilities.PlotterListener;
 import com.example.polardatamanagement.Utilities.RecyclerViewAdapter;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract;
 import com.firebase.ui.auth.IdpResponse;
 import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.polar.sdk.api.PolarBleApi;
 import com.polar.sdk.api.PolarBleApiCallback;
@@ -47,6 +58,8 @@ import com.polar.sdk.api.model.PolarDeviceInfo;
 import com.polar.sdk.api.model.PolarHrBroadcastData;
 import com.polar.sdk.api.model.PolarHrData;
 
+
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,12 +74,12 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Consumer;
 
-public class MainActivity extends AppCompatActivity implements RecyclerViewAdapter.ItemClickListener {
+public class MainActivity extends AppCompatActivity implements RecyclerViewAdapter.ItemClickListener, PlotterListener, SensorEventListener {
 
     private static final int PERMISSION_REQUEST_CODE = 1;
     private FirebaseAuth mAuth;
     private FirebaseDatabase database;
-    private ProgressBar DevicesStatusProgressBar;
+
     private Disposable scanDisposable = null;
     private Disposable broadcastDisposable = null;
     private boolean deviceConnected = false;
@@ -77,14 +90,23 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     private Button signOutBtn;
     private Button ScanDeviceBtn;
     private ImageButton ArrowButton;
+    private ProgressBar DevicesStatusProgressBar;
 
     private TextView appDescriptionTxtView;
     private TextView displayMessageTxtView;
     private TextView heartRateTextView;
     private TextView whatsConnectedIndicator;
 
-    private String email;
-    private String password;
+    private SensorManager sensorManager = null;
+    private boolean running = false;
+    private float totalSteps = 0;
+    private float previousTotalSteps = 0;
+    private TextView stepsTxtView;
+
+
+    private TextView textViewRR;
+    private XYPlot plot;
+    HrAndRrPlotter plotter;
 
     ConstraintLayout userConstraintLayout;
     LinearLayout hiddenView;
@@ -120,6 +142,8 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         DevicesStatusProgressBar = findViewById(R.id.progressBarScanDevices);
         displayMessageTxtView = findViewById(R.id.displayMsgTxtView);
         heartRateTextView = findViewById(R.id.displayHeartRateTxt);
+        textViewRR = findViewById(R.id.hr_view_rr);
+        plot = findViewById(R.id.hr_view_plot);
         availableDevices = new ArrayList<>();
         //Initialize RecyclerView
         recyclerView = findViewById(R.id.devicesRclView);
@@ -130,36 +154,31 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
 
         database = FirebaseDatabase.getInstance(getString(R.string.database_URL));
 
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        stepsTxtView = findViewById(R.id.displayStepsTxt);
+
         List<AuthUI.IdpConfig> providers = Arrays.asList(
                 new AuthUI.IdpConfig.EmailBuilder().build());
 
-        signInBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent signInIntent = AuthUI.getInstance()
-                        .createSignInIntentBuilder()
-                        .setAvailableProviders(providers)
-                        .build();
-                signInLauncher.launch(signInIntent);
-            }
+        signInBtn.setOnClickListener(view -> {
+            Intent signInIntent = AuthUI.getInstance()
+                    .createSignInIntentBuilder()
+                    .setAvailableProviders(providers)
+                    .build();
+            signInLauncher.launch(signInIntent);
         });
 
-        signOutBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                AuthUI.getInstance()
-                        .signOut(MainActivity.this)
-                        .addOnCompleteListener(new OnCompleteListener<Void>() {
-                            public void onComplete(@NonNull Task<Void> task) {
-                                signInBtn.setVisibility(View.VISIBLE);
-                                appDescriptionTxtView.setVisibility(View.VISIBLE);
-                                signOutBtn.setVisibility(View.INVISIBLE);
-                                userConstraintLayout.setVisibility(View.GONE);
-                            }
-                        });
-            }
-        });
+        signOutBtn.setOnClickListener(view -> AuthUI.getInstance()
+                .signOut(MainActivity.this)
+                .addOnCompleteListener(task -> {
+                    signInBtn.setVisibility(View.VISIBLE);
+                    appDescriptionTxtView.setVisibility(View.VISIBLE);
+                    signOutBtn.setVisibility(View.INVISIBLE);
+                    userConstraintLayout.setVisibility(View.GONE);
+                }));
 
+        createPlot();
+        loadData();
         initializeApi();
 
         boolean isBroadCastDisposed;
@@ -190,21 +209,21 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         }
 
         ArrowButton.setOnClickListener(view -> {
+            Transition transition = new Fade();
+            transition.addTarget(hiddenView);
             if (hiddenView.getVisibility() == View.VISIBLE) {
                 // The transition of the hiddenView is carried out
                 // by the TransitionManager class.
                 // Here we use an object of the AutoTransition
                 // Class to create a default transition.
-                TransitionManager.beginDelayedTransition(baseView,
-                        new AutoTransition());
+                TransitionManager.beginDelayedTransition(baseView, transition);
                 hiddenView.setVisibility(View.GONE);
                 ArrowButton.setImageResource(R.drawable.ic_baseline_expand_more_24);
             }
             // If the CardView is not expanded, set its visibility
             // to visible and change the expand more icon to expand less.
             else {
-                TransitionManager.beginDelayedTransition(baseView,
-                        new AutoTransition());
+                TransitionManager.beginDelayedTransition(baseView, transition);
                 hiddenView.setVisibility(View.VISIBLE);
                 ArrowButton.setImageResource(R.drawable.ic_baseline_expand_less_24);
             }
@@ -241,16 +260,17 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         });
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}, 1);
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    requestPermissions(new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}, 1);
-                } else {
-                    requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+                if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED){
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACTIVITY_RECOGNITION}, 1);
                 }
             }
-            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
         }
-
     }
 
     @Override
@@ -272,12 +292,22 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     @Override
     public void onResume() {
         super.onResume();
+        running = true;
+        Sensor stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+        if (stepSensor == null) {
+            // This will give a toast message to the user if there is no sensor in the device
+            Toast.makeText(this, "No sensor detected on this device", Toast.LENGTH_SHORT).show();
+        } else {
+            // Rate suitable for the user interface
+            sensorManager.registerListener(MainActivity.this, stepSensor, SensorManager.SENSOR_DELAY_UI);
+        }
         api.foregroundEntered();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        plot.clear();
         api.shutDown();
     }
 
@@ -364,7 +394,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
 
             @Override
             public void blePowerStateChanged(boolean powered) {
-                Toast.makeText(MainActivity.this, "BLE power " + powered, Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Bluetooth activated: " + powered, Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -404,6 +434,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
                 recyclerViewItemLayout.removeViewAt(1);
                 recyclerViewItemLayout.removeViewAt(1);
                 heartRateTextView.setText(R.string.emptyHRText);
+                textViewRR.setText("");
                 whatsConnectedIndicator.setText(R.string.no_connected_devices);
                 Toast.makeText(MainActivity.this, "Disconnected from " + polarDeviceInfo.deviceId, Toast.LENGTH_SHORT).show();
             }
@@ -429,6 +460,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
             public void batteryLevelReceived(@NonNull String identifier, int level) {
             }
 
+            @RequiresApi(api = Build.VERSION_CODES.O)
             @SuppressLint("SimpleDateFormat")
             @Override
             public void hrNotificationReceived(@NonNull String identifier, @NonNull PolarHrData data) {
@@ -441,11 +473,82 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
                         .child(new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
                         .child(Calendar.getInstance().getTime().toString())
                         .setValue(data.hr);
+                if (!data.rrsMs.isEmpty()) {
+                    String rrText = String.join("ms, ", data.rrsMs.toString()) + "ms";
+                    textViewRR.setText(rrText);
+                }
+                plotter.addValues(data);
             }
 
             @Override
             public void polarFtpFeatureReady(@NonNull String s) {
             }
         });
+    }
+
+    private void createPlot(){
+        plotter = new HrAndRrPlotter();
+        plotter.setListener(MainActivity.this);
+        plot.addSeries(plotter.getHrSeries(), plotter.getHrFormatter());
+        plot.addSeries(plotter.getRrSeries(), plotter.getRrFormatter());
+        plot.setRangeBoundaries(50, 100, BoundaryMode.AUTO);
+        plot.setDomainBoundaries(0, 360000, BoundaryMode.AUTO);
+        // Left labels will increment by 10
+        plot.setRangeStep(StepMode.INCREMENT_BY_VAL, 10.0);
+        plot.setDomainStep(StepMode.INCREMENT_BY_VAL, 60000.0);
+        // Make left labels be an integer (no decimal places)
+        plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.LEFT).setFormat(new DecimalFormat("#"));
+        // These don't seem to have an effect
+        plot.setLinesPerRangeLabel(2);
+    }
+
+    @Override
+    public void update() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                plot.redraw();
+            }
+        });
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+        if (running) {
+            Log.d("Nikos", String.valueOf(sensorEvent.values[0]));
+            totalSteps = sensorEvent.values[0];
+            if (previousTotalSteps == 0){
+                previousTotalSteps = totalSteps;
+            }
+            // Current steps are calculated by taking the difference of total step and previous steps
+            int currentSteps = (int) totalSteps - (int) previousTotalSteps;
+            // It will show the current steps to the user
+            stepsTxtView.setText(String.valueOf(currentSteps));
+        }
+    }
+
+    private void resetSteps(){
+        saveData();
+    }
+
+    private void saveData() {
+        // Shared Preferences will allow us to save and retrieve data in the form of key,value pair.
+        SharedPreferences sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putFloat("key1", previousTotalSteps);
+        editor.apply();
+    }
+
+    private void loadData() {
+        SharedPreferences sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE);
+        float savedNumber = sharedPreferences.getFloat("key1", 0f);
+        // Log.d is used for debugging purposes
+        Toast.makeText(this, "Saved Number: " + String.valueOf(savedNumber), Toast.LENGTH_SHORT).show();
+        previousTotalSteps = savedNumber;
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+        // We do not have to write anything in this function for this app
     }
 }
