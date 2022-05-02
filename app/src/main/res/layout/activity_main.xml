@@ -74,7 +74,38 @@
             android:id="@+id/UserConstraintLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="visible">
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/userDisplayLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+
+                <ImageView
+                    android:id="@+id/imageView"
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:layout_gravity="start"
+                    android:layout_marginStart="8dp"
+                    android:background="@color/primaryColor"
+                    android:contentDescription="@string/user_icon"
+                    app:srcCompat="@drawable/ic_round_person_24" />
+
+                <TextView
+                    android:id="@+id/user_name_display_txt_view"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginStart="7dp"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
+            </LinearLayout>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardView"
@@ -87,7 +118,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.0"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
+                app:layout_constraintTop_toBottomOf="@+id/userDisplayLayout">
 
                 <LinearLayout
                     android:id="@+id/baseView"
@@ -327,7 +358,7 @@
                     app:graphMarginLeft="30dp"
                     app:graphMarginRight="5dp"
                     app:graphMarginTop="20dp"
-                    app:gridBackgroundColor="@color/primaryColor"
+                    app:gridBackgroundColor="@color/white"
                     app:gridInsetLeft="25dp"
                     app:lineLabels="left"
                     app:rangeTitle="@string/hr_range_title"
@@ -350,7 +381,7 @@
         android:layout_height="wrap_content"
         android:text="@string/sign_in_btn_txt"
         android:textColor="#000000"
-        android:visibility="gone"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

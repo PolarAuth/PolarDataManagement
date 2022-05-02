@@ -1,14 +1,14 @@
 package com.example.polardatamanagement;
 
 import static android.content.ContentValues.TAG;
+
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.transition.Fade;
@@ -31,6 +31,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -62,8 +63,8 @@ import com.polar.sdk.api.model.PolarHrData;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -88,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
 
     private Button signInBtn;
     private Button signOutBtn;
+    private TextView usernameDisplayTextView;
     private Button ScanDeviceBtn;
     private ImageButton ArrowButton;
     private ProgressBar DevicesStatusProgressBar;
@@ -102,21 +104,20 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     private float totalSteps = 0;
     private float previousTotalSteps = 0;
     private TextView stepsTxtView;
-
+    private ImageView imageViewSteps;
 
     private TextView textViewRR;
     private XYPlot plot;
-    HrAndRrPlotter plotter;
 
+    HrAndRrPlotter plotter;
     ConstraintLayout userConstraintLayout;
     LinearLayout hiddenView;
     LinearLayout baseView;
-
+    List<AuthUI.IdpConfig> providers;
     LinearLayout recyclerViewItemLayout;
     RecyclerView recyclerView;
     RecyclerViewAdapter adapter;
     RecyclerView.ViewHolder itemViewClicked;
-
     PolarBleApi api;
 
     @Override
@@ -124,12 +125,141 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        initializeViewsAndVariables();
+        createPlot();
+        loadData();
+        initializeListeners();
+        initializeApi();
+        requestPermissions();
+
+        boolean isBroadCastDisposed;
+        if (broadcastDisposable != null) {
+            isBroadCastDisposed = scanDisposable.isDisposed();
+        } else {
+            isBroadCastDisposed = true;
+        }
+        if (isBroadCastDisposed) {
+            displayMessageTxtView.setText(R.string.scanDevicesMsg);
+            DevicesStatusProgressBar.setVisibility(View.VISIBLE);
+            broadcastDisposable = api.startListenForPolarHrBroadcasts(null)
+                    .subscribe(new Consumer<PolarHrBroadcastData>() {
+                        @RequiresApi(api = Build.VERSION_CODES.N)
+                        @Override
+                        public void accept(PolarHrBroadcastData polarHrBroadcastData) throws Throwable {
+                            if (availableDevices.isEmpty()) {
+                                deviceFoundProcedure(polarHrBroadcastData.polarDeviceInfo);
+                            } else {
+                                if (availableDevices.stream().noneMatch(polarDeviceInfo -> polarDeviceInfo.
+                                        deviceId.equals(polarHrBroadcastData.polarDeviceInfo.deviceId))) {
+                                    deviceFoundProcedure(polarHrBroadcastData.polarDeviceInfo);
+                                }
+                            }
+                        }
+                    });
+        } else {
+            broadcastDisposable.dispose();
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        // Check if user is signed in (non-null) and update UI accordingly.
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            updateUI(currentUser);
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        api.backgroundEntered();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        running = true;
+        Sensor stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+        if (stepSensor == null) {
+            // This will give a toast message to the user if there is no sensor in the device
+            Toast.makeText(this, "No sensor detected on this device", Toast.LENGTH_SHORT).show();
+        } else {
+            // Rate suitable for the user interface
+            sensorManager.registerListener(MainActivity.this, stepSensor, SensorManager.SENSOR_DELAY_UI);
+        }
+        api.foregroundEntered();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        plot.clear();
+        api.shutDown();
+    }
+
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+        alert.setTitle("Exit application");
+        alert.setMessage(R.string.confirm_exit_msg);
+        alert.setPositiveButton("Yes", (dialogInterface, i) -> finishAffinity());
+        alert.setNegativeButton("No", (dialogInterface, i) -> dialogInterface.cancel());
+        alert.show();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            for (int grantResult : grantResults) {
+                if (grantResult == PackageManager.PERMISSION_DENIED) {
+                    blockAppFunctions();
+                    Toast.makeText(MainActivity.this, "No sufficient permissions", Toast.LENGTH_SHORT).show();
+                    break;
+                }
+            }
+            Log.d(TAG, "Needed permissions are granted");
+        }
+    }
+
+    private final ActivityResultLauncher<Intent> signInLauncher = registerForActivityResult(
+            new FirebaseAuthUIActivityResultContract(),
+            new ActivityResultCallback<FirebaseAuthUIAuthenticationResult>() {
+                @Override
+                public void onActivityResult(FirebaseAuthUIAuthenticationResult result) {
+                    onSignInResult(result);
+                }
+            }
+    );
+
+    private void onSignInResult(FirebaseAuthUIAuthenticationResult result) {
+        IdpResponse response = result.getIdpResponse();
+        if (result.getResultCode() == RESULT_OK) {
+            // Successfully signed in
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+            assert user != null;
+            alert.setMessage("Welcome " + user.getDisplayName());
+            alert.setPositiveButton("Hi", (dialogInterface, i) -> updateUI(user));
+            alert.setOnDismissListener(dialogInterface -> updateUI(user));
+            AlertDialog dialog = alert.create();
+            dialog.getWindow().getAttributes().windowAnimations = R.style.SlidingDialogAnimation;
+            dialog.show();
+        } else {
+            Toast.makeText(MainActivity.this, "Sign In failed.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void initializeViewsAndVariables() {
         // Initialize Polar & Firebase Auth
         mAuth = FirebaseAuth.getInstance();
-        api = PolarBleApiDefaultImpl.defaultImplementation(getApplicationContext(),  PolarBleApi.ALL_FEATURES);
+        api = PolarBleApiDefaultImpl.defaultImplementation(getApplicationContext(), PolarBleApi.ALL_FEATURES);
         // Initialize Buttons
         signInBtn = findViewById(R.id.signInBtn);
         signOutBtn = findViewById(R.id.signOutBtn);
+        usernameDisplayTextView = findViewById(R.id.user_name_display_txt_view);
         ScanDeviceBtn = findViewById(R.id.ScanDevicesBtn);
         ArrowButton = findViewById(R.id.arrow_btn);
         // Initialize Views & Layouts
@@ -153,13 +283,14 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         recyclerView.setAdapter(adapter);
 
         database = FirebaseDatabase.getInstance(getString(R.string.database_URL));
+        providers = Collections.singletonList(new AuthUI.IdpConfig.EmailBuilder().build());
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         stepsTxtView = findViewById(R.id.displayStepsTxt);
+        imageViewSteps = findViewById(R.id.imageViewSteps);
+    }
 
-        List<AuthUI.IdpConfig> providers = Arrays.asList(
-                new AuthUI.IdpConfig.EmailBuilder().build());
-
+    private void initializeListeners() {
         signInBtn.setOnClickListener(view -> {
             Intent signInIntent = AuthUI.getInstance()
                     .createSignInIntentBuilder()
@@ -168,45 +299,30 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
             signInLauncher.launch(signInIntent);
         });
 
-        signOutBtn.setOnClickListener(view -> AuthUI.getInstance()
-                .signOut(MainActivity.this)
-                .addOnCompleteListener(task -> {
-                    signInBtn.setVisibility(View.VISIBLE);
-                    appDescriptionTxtView.setVisibility(View.VISIBLE);
-                    signOutBtn.setVisibility(View.INVISIBLE);
-                    userConstraintLayout.setVisibility(View.GONE);
-                }));
+        signOutBtn.setOnClickListener(view -> {
+            AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+            alert.setTitle("Sign out");
+            alert.setMessage("Are you sure you want to sign out?");
+            alert.setPositiveButton("Yes", (dialogInterface, i) -> AuthUI.getInstance()
+                    .signOut(MainActivity.this)
+                    .addOnCompleteListener(task -> {
+                        signInBtn.setVisibility(View.VISIBLE);
+                        appDescriptionTxtView.setVisibility(View.VISIBLE);
+                        signOutBtn.setVisibility(View.INVISIBLE);
+                        userConstraintLayout.setVisibility(View.GONE);
+                    }));
+            alert.setNegativeButton("No", (dialogInterface, i) -> dialogInterface.cancel());
+            alert.show();
+        });
 
-        createPlot();
-        loadData();
-        initializeApi();
+        imageViewSteps.setOnClickListener(view -> Toast.makeText(MainActivity.this, "Long tap to reset steps", Toast.LENGTH_SHORT).show());
 
-        boolean isBroadCastDisposed;
-        if (broadcastDisposable != null){
-            isBroadCastDisposed = scanDisposable.isDisposed();
-        } else {
-            isBroadCastDisposed = true;
-        }
-        if (isBroadCastDisposed) {
-            displayMessageTxtView.setText(R.string.scanDevicesMsg);
-            DevicesStatusProgressBar.setVisibility(View.VISIBLE);
-            broadcastDisposable = api.startListenForPolarHrBroadcasts(null)
-                    .subscribe(new Consumer<PolarHrBroadcastData>() {
-                        @RequiresApi(api = Build.VERSION_CODES.N)
-                        @Override
-                        public void accept(PolarHrBroadcastData polarHrBroadcastData) throws Throwable {
-                            if (availableDevices.isEmpty()) {
-                                deviceFoundProcedure(polarHrBroadcastData.polarDeviceInfo);
-                            } else {
-                                if (availableDevices.stream().noneMatch(polarDeviceInfo -> polarDeviceInfo.deviceId.equals(polarHrBroadcastData.polarDeviceInfo.deviceId))){
-                                    deviceFoundProcedure(polarHrBroadcastData.polarDeviceInfo);
-                                }
-                            }
-                        }
-                    });
-        } else {
-            broadcastDisposable.dispose();
-        }
+        imageViewSteps.setOnLongClickListener(view -> {
+            previousTotalSteps = totalSteps;
+            stepsTxtView.setText("0");
+            saveData();
+            return true;
+        });
 
         ArrowButton.setOnClickListener(view -> {
             Transition transition = new Fade();
@@ -258,127 +374,6 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
                 scanDisposable.dispose();
             }
         });
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}, 1);
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED){
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACTIVITY_RECOGNITION}, 1);
-                }
-            }
-        }
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        // Check if user is signed in (non-null) and update UI accordingly.
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if(currentUser != null){
-            updateUI(currentUser);
-        }
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        api.backgroundEntered();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        running = true;
-        Sensor stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-        if (stepSensor == null) {
-            // This will give a toast message to the user if there is no sensor in the device
-            Toast.makeText(this, "No sensor detected on this device", Toast.LENGTH_SHORT).show();
-        } else {
-            // Rate suitable for the user interface
-            sensorManager.registerListener(MainActivity.this, stepSensor, SensorManager.SENSOR_DELAY_UI);
-        }
-        api.foregroundEntered();
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        plot.clear();
-        api.shutDown();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            for (int grantResult : grantResults) {
-                if (grantResult == PackageManager.PERMISSION_DENIED) {
-                    blockAppFunctions();
-                    Toast.makeText(MainActivity.this, "No sufficient permissions", Toast.LENGTH_SHORT).show();
-                    break;
-                }
-            }
-            Log.d(TAG, "Needed permissions are granted");
-        }
-    }
-
-    private final ActivityResultLauncher<Intent> signInLauncher = registerForActivityResult(
-            new FirebaseAuthUIActivityResultContract(),
-            new ActivityResultCallback<FirebaseAuthUIAuthenticationResult>() {
-                @Override
-                public void onActivityResult(FirebaseAuthUIAuthenticationResult result) {
-                    onSignInResult(result);
-                }
-            }
-    );
-
-    private void onSignInResult(FirebaseAuthUIAuthenticationResult result) {
-        IdpResponse response = result.getIdpResponse();
-        if (result.getResultCode() == RESULT_OK) {
-            // Successfully signed in
-            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-            updateUI(user);
-        } else {
-            Toast.makeText(MainActivity.this, "Sign In failed.", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void updateUI(FirebaseUser user){
-        signInBtn.setVisibility(View.GONE);
-        appDescriptionTxtView.setVisibility(View.GONE);
-        signOutBtn.setVisibility(View.VISIBLE);
-        userConstraintLayout.setVisibility(View.VISIBLE);
-    }
-
-    private void blockAppFunctions() {
-        ScanDeviceBtn.setActivated(false);
-        api.shutDown();
-    }
-
-    private void deviceFoundProcedure(PolarDeviceInfo polarDeviceInfo) {
-        displayMessageTxtView.setText(R.string.DevicesFoundMsg);
-        DevicesStatusProgressBar.setVisibility(View.INVISIBLE);
-        availableDevices.add(polarDeviceInfo);
-        adapter.notifyItemInserted(availableDevices.size() -1);
-    }
-
-    @Override
-    public void onItemClick(View view, int position) {
-        try {
-            if (deviceConnected){
-                Toast.makeText(this, "Already Connected", Toast.LENGTH_SHORT).show();
-            } else {
-                api.connectToDevice(adapter.getItem(position));
-                itemViewClicked = recyclerView.findViewHolderForAdapterPosition(position);
-            }
-        } catch (PolarInvalidArgument polarInvalidArgument) {
-            polarInvalidArgument.printStackTrace();
-            Toast.makeText(this, "Something went wrong while connecting", Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void initializeApi(){
@@ -502,6 +497,60 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         plot.setLinesPerRangeLabel(2);
     }
 
+    private void requestPermissions(){
+        ArrayList<String> permissions = new ArrayList<>();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                permissions.add(Manifest.permission.BLUETOOTH_SCAN);
+                permissions.add(Manifest.permission.BLUETOOTH_CONNECT);
+                permissions.add(Manifest.permission.ACTIVITY_RECOGNITION);
+            } else {
+                permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+                permissions.add(Manifest.permission.ACTIVITY_RECOGNITION);
+            }
+        } else {
+            permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermissions(permissions.toArray(new String[0]), 1);
+        }
+    }
+
+    private void updateUI(FirebaseUser user){
+        signInBtn.setVisibility(View.GONE);
+        appDescriptionTxtView.setVisibility(View.GONE);
+        signOutBtn.setVisibility(View.VISIBLE);
+        userConstraintLayout.setVisibility(View.VISIBLE);
+        usernameDisplayTextView.setText(user.getDisplayName());
+    }
+
+    private void blockAppFunctions() {
+        ScanDeviceBtn.setActivated(false);
+        api.shutDown();
+    }
+
+    private void deviceFoundProcedure(PolarDeviceInfo polarDeviceInfo) {
+        displayMessageTxtView.setText(R.string.DevicesFoundMsg);
+        DevicesStatusProgressBar.setVisibility(View.INVISIBLE);
+        availableDevices.add(polarDeviceInfo);
+        adapter.notifyItemInserted(availableDevices.size() -1);
+    }
+
+    @Override
+    public void onItemClick(View view, int position) {
+        try {
+            if (deviceConnected){
+                Toast.makeText(this, "Already Connected", Toast.LENGTH_SHORT).show();
+            } else {
+                api.connectToDevice(adapter.getItem(position));
+                itemViewClicked = recyclerView.findViewHolderForAdapterPosition(position);
+            }
+        } catch (PolarInvalidArgument polarInvalidArgument) {
+            polarInvalidArgument.printStackTrace();
+            Toast.makeText(this, "Something went wrong while connecting", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     @Override
     public void update() {
         runOnUiThread(new Runnable() {
@@ -527,8 +576,9 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         }
     }
 
-    private void resetSteps(){
-        saveData();
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+        // We do not have to write anything in this function for this app
     }
 
     private void saveData() {
@@ -541,14 +591,6 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
 
     private void loadData() {
         SharedPreferences sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE);
-        float savedNumber = sharedPreferences.getFloat("key1", 0f);
-        // Log.d is used for debugging purposes
-        Toast.makeText(this, "Saved Number: " + String.valueOf(savedNumber), Toast.LENGTH_SHORT).show();
-        previousTotalSteps = savedNumber;
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-        // We do not have to write anything in this function for this app
+        previousTotalSteps = sharedPreferences.getFloat("key1", 0f);
     }
 }
