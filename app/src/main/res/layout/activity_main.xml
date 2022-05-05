@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:cardBackgroundColor="@color/primaryDarkColor"
+        app:cardBackgroundColor="#F5060E37"
         app:cardCornerRadius="2dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -32,7 +32,7 @@
                 android:gravity="center_vertical"
                 android:text="@string/main_screen_title"
                 android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                android:textColor="#263238"
+                android:textColor="#FDFEFF"
                 app:autoSizeTextType="none" />
 
             <Button
@@ -41,7 +41,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/sign_out_btn_txt"
-                android:textColor="#000000"
+                android:textColor="@color/white"
                 android:visibility="invisible" />
         </LinearLayout>
 
@@ -94,7 +94,7 @@
                     android:layout_height="35dp"
                     android:layout_gravity="start"
                     android:layout_marginStart="8dp"
-                    android:background="@color/primaryColor"
+                    android:background="@color/white"
                     android:contentDescription="@string/user_icon"
                     app:srcCompat="@drawable/ic_round_person_24" />
 
@@ -337,7 +337,7 @@
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:layout_marginBottom="8dp"
-                app:cardBackgroundColor="@color/secondaryDarkColor"
+                app:cardBackgroundColor="@color/dark_grey"
                 app:cardCornerRadius="8dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -352,8 +352,8 @@
                     android:layout_height="170dp"
                     android:layout_margin="5dp"
                     android:layout_marginBottom="8dp"
-                    app:backgroundColor="@color/primaryColor"
-                    app:graphBackgroundColor="@color/secondaryDarkColor"
+                    app:backgroundColor="@color/cream"
+                    app:graphBackgroundColor="@color/dark_grey"
                     app:graphMarginBottom="12dp"
                     app:graphMarginLeft="30dp"
                     app:graphMarginRight="5dp"
@@ -362,11 +362,11 @@
                     app:gridInsetLeft="25dp"
                     app:lineLabels="left"
                     app:rangeTitle="@string/hr_range_title"
-                    app:rangeTitleTextColor="@color/black"
+                    app:rangeTitleTextColor="@color/cream"
                     app:rangeTitleTextSize="12dp"
                     app:renderMode="use_background_thread"
                     app:title="@string/hr_title"
-                    app:titleTextColor="@color/black"
+                    app:titleTextColor="@color/cream"
                     app:titleTextSize="15dp" />
 
             </androidx.cardview.widget.CardView>

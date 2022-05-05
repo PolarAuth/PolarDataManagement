@@ -82,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     private FirebaseDatabase database;
 
     private Disposable scanDisposable = null;
+
     private Disposable broadcastDisposable = null;
     private boolean deviceConnected = false;
     //private String deviceId = "73B38923";
@@ -127,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
 
         initializeViewsAndVariables();
         createPlot();
-        loadData();
+        loadData(); //read previous total steps that were saved on the device
         initializeListeners();
         initializeApi();
         requestPermissions();
@@ -564,10 +565,20 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         if (running) {
-            Log.d("Nikos", String.valueOf(sensorEvent.values[0]));
             totalSteps = sensorEvent.values[0];
             if (previousTotalSteps == 0){
                 previousTotalSteps = totalSteps;
+                SharedPreferences sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putFloat("key1", previousTotalSteps);
+                editor.apply();
+            }
+            if (totalSteps<previousTotalSteps){
+                previousTotalSteps = 0;
+                SharedPreferences sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putFloat("key1", previousTotalSteps);
+                editor.apply();
             }
             // Current steps are calculated by taking the difference of total step and previous steps
             int currentSteps = (int) totalSteps - (int) previousTotalSteps;
@@ -591,6 +602,8 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
 
     private void loadData() {
         SharedPreferences sharedPreferences = getSharedPreferences("myPrefs", Context.MODE_PRIVATE);
-        previousTotalSteps = sharedPreferences.getFloat("key1", 0f);
+        if (sharedPreferences.contains("key1")){
+            previousTotalSteps = sharedPreferences.getFloat("key1", 0f);
+        }
     }
 }

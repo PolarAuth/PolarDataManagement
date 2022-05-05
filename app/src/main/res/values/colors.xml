@@ -15,9 +15,9 @@
 
     <color name="green">#388E3C</color>
 
-    <color name="primaryColor">#b2dfdb</color>
-    <color name="primaryLightColor">#e5ffff</color>
-    <color name="primaryDarkColor">#82ada9</color>
+    <color name="primaryColor">#311b92</color>
+    <color name="primaryLightColor">#6746c3</color>
+    <color name="primaryDarkColor">#000063</color>
     <color name="secondaryColor">#ef9a9a</color>
     <color name="secondaryLightColor">#ffcccb</color>
     <color name="secondaryDarkColor">#ba6b6c</color>
