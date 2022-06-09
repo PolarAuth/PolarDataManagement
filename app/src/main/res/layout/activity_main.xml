@@ -11,8 +11,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:cardBackgroundColor="#F5060E37"
-        app:cardCornerRadius="2dp"
+        app:cardBackgroundColor="@color/primaryDarkColor"
+        app:cardCornerRadius="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -75,6 +75,28 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="gone">
+
+            <Button
+                android:id="@+id/calculateHRVBtn"
+                style="@android:style/Widget.Material.Light.Button.Borderless.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/calculate_hrv"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/cardView4" />
+
+            <TextView
+                android:id="@+id/DisplayHRVTxtView"
+                style="@style/Widget.MaterialComponents.TextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.216"
+                app:layout_constraintStart_toEndOf="@+id/calculateHRVBtn"
+                app:layout_constraintTop_toBottomOf="@+id/cardView4" />
 
             <LinearLayout
                 android:id="@+id/userDisplayLayout"

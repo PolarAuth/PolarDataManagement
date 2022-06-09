@@ -32,4 +32,5 @@
     <string name="steps">Steps</string>
     <string name="user_icon">user_icon</string>
     <string name="confirm_exit_msg">When exiting application, the connection of the Polar Device will be lost. Steps will still be calculated. \n \n Are you sure you want to exit?</string>
+    <string name="calculate_hrv">Calculate HRV</string>
 </resources>

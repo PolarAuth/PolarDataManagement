@@ -99,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     private TextView displayMessageTxtView;
     private TextView heartRateTextView;
     private TextView whatsConnectedIndicator;
+    private TextView DisplayHRVTxtView;
 
     private SensorManager sensorManager = null;
     private boolean running = false;
@@ -108,6 +109,8 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     private ImageView imageViewSteps;
 
     private TextView textViewRR;
+    private ArrayList<Integer> RRIntervals;
+    private Button CalculateHRVBtn;
     private XYPlot plot;
 
     HrAndRrPlotter plotter;
@@ -120,6 +123,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     RecyclerViewAdapter adapter;
     RecyclerView.ViewHolder itemViewClicked;
     PolarBleApi api;
+    private String deviceIDConnected;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -273,7 +277,9 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         DevicesStatusProgressBar = findViewById(R.id.progressBarScanDevices);
         displayMessageTxtView = findViewById(R.id.displayMsgTxtView);
         heartRateTextView = findViewById(R.id.displayHeartRateTxt);
+        DisplayHRVTxtView = findViewById(R.id.DisplayHRVTxtView);
         textViewRR = findViewById(R.id.hr_view_rr);
+        CalculateHRVBtn = findViewById(R.id.calculateHRVBtn);
         plot = findViewById(R.id.hr_view_plot);
         availableDevices = new ArrayList<>();
         //Initialize RecyclerView
@@ -289,6 +295,8 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         stepsTxtView = findViewById(R.id.displayStepsTxt);
         imageViewSteps = findViewById(R.id.imageViewSteps);
+
+        RRIntervals = new ArrayList<>();
     }
 
     private void initializeListeners() {
@@ -307,6 +315,13 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
             alert.setPositiveButton("Yes", (dialogInterface, i) -> AuthUI.getInstance()
                     .signOut(MainActivity.this)
                     .addOnCompleteListener(task -> {
+                        deviceConnected = false;
+                        deviceIDConnected = null;
+                        recyclerViewItemLayout.removeViewAt(1);
+                        recyclerViewItemLayout.removeViewAt(1);
+                        heartRateTextView.setText(R.string.emptyHRText);
+                        whatsConnectedIndicator.setText(R.string.no_connected_devices);
+                        RRIntervals.clear();
                         signInBtn.setVisibility(View.VISIBLE);
                         appDescriptionTxtView.setVisibility(View.VISIBLE);
                         signOutBtn.setVisibility(View.INVISIBLE);
@@ -323,6 +338,34 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
             stepsTxtView.setText("0");
             saveData();
             return true;
+        });
+
+        CalculateHRVBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                double RMinusRSquareSum = 0;
+                int RMinusRSquareCount = 0;
+                if (RRIntervals.size()<=10){
+                    Toast.makeText(MainActivity.this, "Please wait until sensor gather enough Heart Rate Data", Toast.LENGTH_SHORT).show();
+                } else {
+                    //The below code calculates HRV based on RMSSD
+                    for (int i=0; i<RRIntervals.size()-1; i++){
+                        RMinusRSquareSum += Math.pow(RRIntervals.get(i) - RRIntervals.get(i+1), 2);
+                        RMinusRSquareCount += 1;
+                    }
+                    double RMinusRMean = RMinusRSquareSum/RMinusRSquareCount;
+                    double HRV = Math.round(Math.sqrt(RMinusRMean));
+                    DisplayHRVTxtView.setText("HRV: " + String.valueOf(HRV));
+                    database.getReference()
+                            .child("Users")
+                            .child(Objects.requireNonNull(mAuth.getCurrentUser()).getDisplayName() + " - " + mAuth.getCurrentUser().getUid())
+                            .child(new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+                            .child("Device ID - " + deviceIDConnected)
+                            .child("HRVData")
+                            .child(Calendar.getInstance().getTime().toString())
+                            .setValue(HRV);
+                }
+            }
         });
 
         ArrowButton.setOnClickListener(view -> {
@@ -396,6 +439,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
             @Override
             public void deviceConnected(@NonNull PolarDeviceInfo polarDeviceInfo) {
                 deviceConnected = true;
+                deviceIDConnected = polarDeviceInfo.deviceId;
                 recyclerViewItemLayout = itemViewClicked.itemView.findViewById(R.id.recyclerViewItemLayout);
                 TextView deviceConnectivityIndicatorTxtView = new TextView(MainActivity.this);
                 deviceConnectivityIndicatorTxtView.setText(R.string.connected_indicator);
@@ -427,11 +471,13 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
             @Override
             public void deviceDisconnected(@NonNull PolarDeviceInfo polarDeviceInfo) {
                 deviceConnected = false;
+                deviceIDConnected = null;
                 recyclerViewItemLayout.removeViewAt(1);
                 recyclerViewItemLayout.removeViewAt(1);
                 heartRateTextView.setText(R.string.emptyHRText);
                 textViewRR.setText("");
                 whatsConnectedIndicator.setText(R.string.no_connected_devices);
+                RRIntervals.clear();
                 Toast.makeText(MainActivity.this, "Disconnected from " + polarDeviceInfo.deviceId, Toast.LENGTH_SHORT).show();
             }
 
@@ -465,13 +511,15 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
                 database.getReference()
                         .child("Users")
                         .child(Objects.requireNonNull(mAuth.getCurrentUser()).getDisplayName() + " - " + mAuth.getCurrentUser().getUid())
-                        .child("HeartRateData")
                         .child(new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+                        .child("Device ID - " + deviceIDConnected)
+                        .child("HeartRateData")
                         .child(Calendar.getInstance().getTime().toString())
                         .setValue(data.hr);
                 if (!data.rrsMs.isEmpty()) {
                     String rrText = String.join("ms, ", data.rrsMs.toString()) + "ms";
                     textViewRR.setText(rrText);
+                    RRIntervals.addAll(data.rrsMs);
                 }
                 plotter.addValues(data);
             }
