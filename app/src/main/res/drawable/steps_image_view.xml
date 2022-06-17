@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
+<item>
+    <shape android:shape="oval">
+        <!-- giving the color and width to the stroke -->
+        <stroke android:color="@color/primaryDarkColor" android:width="3dp"/>
+        <!-- giving the width and the height to the shape -->
+        <size android:width="86dp" android:height="91dp"/>
+    </shape>
+</item>
+<item>
+    <bitmap
+        android:src="@drawable/steps"
+        android:tileMode="repeat"
+        android:gravity="center">
+        <size android:width="40dp" android:height="40dp"/>
+    </bitmap>
+</item>
+</layer-list>
