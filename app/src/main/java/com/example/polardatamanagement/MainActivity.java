@@ -88,7 +88,6 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     //private String deviceId = "73B38923";
     private List<PolarDeviceInfo> availableDevices;
 
-    private Button signInBtn;
     private Button signOutBtn;
     private TextView usernameDisplayTextView;
     private Button ScanDeviceBtn;
@@ -129,6 +128,9 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //Intent intent = getIntent();
+        //String value = intent.getStringExtra("key");
 
         initializeViewsAndVariables();
         createPlot();
@@ -172,7 +174,6 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         // Check if user is signed in (non-null) and update UI accordingly.
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null) {
-            updateUI(currentUser);
         }
     }
 
@@ -229,40 +230,11 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         }
     }
 
-    private final ActivityResultLauncher<Intent> signInLauncher = registerForActivityResult(
-            new FirebaseAuthUIActivityResultContract(),
-            new ActivityResultCallback<FirebaseAuthUIAuthenticationResult>() {
-                @Override
-                public void onActivityResult(FirebaseAuthUIAuthenticationResult result) {
-                    onSignInResult(result);
-                }
-            }
-    );
-
-    private void onSignInResult(FirebaseAuthUIAuthenticationResult result) {
-        IdpResponse response = result.getIdpResponse();
-        if (result.getResultCode() == RESULT_OK) {
-            // Successfully signed in
-            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-            AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
-            assert user != null;
-            alert.setMessage("Welcome " + user.getDisplayName());
-            alert.setPositiveButton("Hi", (dialogInterface, i) -> updateUI(user));
-            alert.setOnDismissListener(dialogInterface -> updateUI(user));
-            AlertDialog dialog = alert.create();
-            dialog.getWindow().getAttributes().windowAnimations = R.style.SlidingDialogAnimation;
-            dialog.show();
-        } else {
-            Toast.makeText(MainActivity.this, "Sign In failed.", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     private void initializeViewsAndVariables() {
         // Initialize Polar & Firebase Auth
         mAuth = FirebaseAuth.getInstance();
         api = PolarBleApiDefaultImpl.defaultImplementation(getApplicationContext(), PolarBleApi.ALL_FEATURES);
         // Initialize Buttons
-        signInBtn = findViewById(R.id.signInBtn);
         signOutBtn = findViewById(R.id.signOutBtn);
         usernameDisplayTextView = findViewById(R.id.user_name_display_txt_view);
         ScanDeviceBtn = findViewById(R.id.ScanDevicesBtn);
@@ -300,14 +272,6 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
     }
 
     private void initializeListeners() {
-        signInBtn.setOnClickListener(view -> {
-            Intent signInIntent = AuthUI.getInstance()
-                    .createSignInIntentBuilder()
-                    .setAvailableProviders(providers)
-                    .build();
-            signInLauncher.launch(signInIntent);
-        });
-
         signOutBtn.setOnClickListener(view -> {
             AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
             alert.setTitle("Sign out");
@@ -315,17 +279,9 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
             alert.setPositiveButton("Yes", (dialogInterface, i) -> AuthUI.getInstance()
                     .signOut(MainActivity.this)
                     .addOnCompleteListener(task -> {
-                        deviceConnected = false;
-                        deviceIDConnected = null;
-                        recyclerViewItemLayout.removeViewAt(1);
-                        recyclerViewItemLayout.removeViewAt(1);
-                        heartRateTextView.setText(R.string.emptyHRText);
-                        whatsConnectedIndicator.setText(R.string.no_connected_devices);
-                        RRIntervals.clear();
-                        signInBtn.setVisibility(View.VISIBLE);
-                        appDescriptionTxtView.setVisibility(View.VISIBLE);
-                        signOutBtn.setVisibility(View.INVISIBLE);
-                        userConstraintLayout.setVisibility(View.GONE);
+                        Intent intent = new Intent(MainActivity.this, StartActivity.class);
+                        MainActivity.this.startActivity(intent);
+                        finish();
                     }));
             alert.setNegativeButton("No", (dialogInterface, i) -> dialogInterface.cancel());
             alert.show();
@@ -563,14 +519,6 @@ public class MainActivity extends AppCompatActivity implements RecyclerViewAdapt
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             requestPermissions(permissions.toArray(new String[0]), 1);
         }
-    }
-
-    private void updateUI(FirebaseUser user){
-        signInBtn.setVisibility(View.GONE);
-        appDescriptionTxtView.setVisibility(View.GONE);
-        signOutBtn.setVisibility(View.VISIBLE);
-        userConstraintLayout.setVisibility(View.VISIBLE);
-        usernameDisplayTextView.setText(user.getDisplayName());
     }
 
     private void blockAppFunctions() {
